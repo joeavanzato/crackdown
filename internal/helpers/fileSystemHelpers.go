@@ -1,4 +1,4 @@
-package internal
+package helpers
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func fileExists(filename string) bool {
+func FileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return false
@@ -16,7 +16,7 @@ func fileExists(filename string) bool {
 	return true
 }
 
-func readFileToSlice(filename string, logger *logrus.Logger) []string {
+func ReadFileToSlice(filename string, logger *logrus.Logger) []string {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
@@ -40,7 +40,7 @@ func readFileToSlice(filename string, logger *logrus.Logger) []string {
 	//reader := bufio.NewReader(file)
 }
 
-func readFileToString(filename string, logger *logrus.Logger) string {
+func ReadFileToString(filename string, logger *logrus.Logger) string {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
