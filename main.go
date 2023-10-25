@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/javanzato/crackdown/internal"
 	"github.com/sirupsen/logrus"
@@ -8,6 +10,16 @@ import (
 	"io"
 	"os"
 )
+
+var severityMap = map[int]string{
+	0: "INFO",
+	1: "LOW",
+	2: "MEDIUM",
+	3: "HIGH",
+	4: "CRITICAL",
+}
+
+type anyMap map[string]interface{}
 
 func setupLogger() *logrus.Logger {
 	logFileName := "crackdown.log"
@@ -24,37 +36,93 @@ func setupLogger() *logrus.Logger {
 		Out:   mw,
 		Level: logrus.DebugLevel,
 		Formatter: &prefixed.TextFormatter{
-			DisableColors:   true,
 			TimestampFormat: "2006-01-02 15:04:05",
 			FullTimestamp:   true,
 			ForceFormatting: true,
 		},
 	}
-	fmt.Println(`                        __       __                  `)
-	fmt.Println(`  ______________ ______/ /______/ /___ _      ______ `)
-	fmt.Println(" / ___/ ___/ __ '/ ___/ //_/ __  / __ \\ | /| / / __ \\")
-	fmt.Println(`/ /__/ /  / /_/ / /__/ ,< / /_/ / /_/ / |/ |/ / / / /`)
-	fmt.Println(`\___/_/   \__,_/\___/_/|_|\__,_/\____/|__/|__/_/ /_/ `)
-	logger.Info("crackdown: Linux Persistence Hunting")
-	logger.Debug("github.com/joeavanzato/crackdown")
 	return logger
+}
+
+func printLogo() {
+	fmt.Println(`	                        __       __                  `)
+	fmt.Println(`	  ______________ ______/ /______/ /___ _      ______ `)
+	fmt.Println("	 / ___/ ___/ __ '/ ___/ //_/ __  / __ \\ | /| / / __ \\")
+	fmt.Println(`	/ /__/ /  / /_/ / /__/ ,< / /_/ / /_/ / |/ |/ / / / /`)
+	fmt.Println(`	\___/_/   \__,_/\___/_/|_|\__,_/\____/|__/|__/_/ /_/ `)
+	fmt.Println("	crackdown: Linux Persistence Hunting")
+	fmt.Println("	github.com/joeavanzato/crackdown")
+}
+
+func listenDetections(c chan internal.Detection) ([]internal.Detection, int) {
+	detectionCount := 0
+	detections := make([]internal.Detection, 20)
+detectionListen:
+	for {
+		detection, ok := <-c
+		if !ok {
+			break detectionListen
+		} else {
+			detections = append(detections, detection)
+			detectionCount += 1
+		}
+	}
+	return detections, detectionCount
+}
+
+func closeChannelWhenDone(c chan internal.Detection, waitGroup *internal.WaitGroupCount) {
+	waitGroup.Wait()
+	close(c)
+}
+
+func parseArgs(logger *logrus.Logger) anyMap {
+	quiet := flag.Bool("quiet", false, "Suppress most Console Logging")
+
+	flag.Parse()
+	arguments := anyMap{
+		"quiet": *quiet,
+	}
+	return arguments
+}
+
+func writeJSONOut(logger *logrus.Logger, detections []internal.Detection, detectionCount int) {
+	detections = detections[len(detections)-detectionCount:]
+	content, err := json.MarshalIndent(detections, "", "\t")
+	if err != nil {
+		logger.Error(err)
+	}
+	f, err := os.Create("detections.json")
+	if err != nil {
+		panic(err)
+	}
+	_, err = f.Write(content)
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 func main() {
 	logger := setupLogger()
-	severity_map := map[int]string{
-		0: "INFO",
-		1: "LOW",
-		2: "MEDIUM",
-		3: "HIGH",
-		4: "CRITICAL",
+	arguments := parseArgs(logger)
+	printLogo()
+	receiveDetections := make(chan internal.Detection)
+	var waitGroup internal.WaitGroupCount
+	waitGroup.Add(4)
+	go internal.FindLocalUsers(logger, receiveDetections, &waitGroup)
+	go internal.FindCronJobs(logger, receiveDetections, &waitGroup)
+	go internal.FindSuspiciousCommandlines(logger, receiveDetections, &waitGroup)
+	go internal.FindSuspiciousConnections(logger, receiveDetections, &waitGroup)
+	go closeChannelWhenDone(receiveDetections, &waitGroup)
+	detections, detectionCount := listenDetections(receiveDetections)
+	logger.Infof("Detection Count: %d", detectionCount)
+	if arguments["quiet"] == false {
+		for _, i := range detections {
+			if i.Metadata != nil {
+				// The slice might be longer than the 'real' elements present.
+				logger.Info(i)
+			}
+		}
 	}
-	logger.Info(severity_map)
-	detections := make([]internal.Detection, 20)
-	detections = internal.FindLocalUsers(logger, detections)
-	detections = internal.FindCronJobs(logger, detections)
-	detections = internal.FindSuspiciousCommandlines(logger, detections)
-	/*for _, v := range detections {
-		fmt.Println(v)
-	}*/
+	writeJSONOut(logger, detections, detectionCount)
+
 }
