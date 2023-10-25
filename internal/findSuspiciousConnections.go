@@ -4,6 +4,7 @@ import (
 	"github.com/bastjan/netstat"
 	"github.com/javanzato/crackdown/internal/helpers"
 	"github.com/sirupsen/logrus"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -47,9 +48,25 @@ func FindSuspiciousConnections(logger *logrus.Logger, detections chan<- Detectio
 	appAllowList := []string{
 		"usr/lib/firefox/firefox",
 	}
+	tenDot := net.IPNet{
+		IP:   net.ParseIP("10.0.0.0"),
+		Mask: net.CIDRMask(8, 32),
+	}
+	sevenTwoDot := net.IPNet{
+		IP:   net.ParseIP("172.16.0.0"),
+		Mask: net.CIDRMask(12, 32),
+	}
+	oneNineTwoDot := net.IPNet{
+		IP:   net.ParseIP("192.168.0.0"),
+		Mask: net.CIDRMask(16, 32),
+	}
 
 	for _, v := range connections {
 		if skipIPs[v.RemoteIP.String()] {
+			continue
+		}
+		// Skip private-network connections
+		if tenDot.Contains(v.RemoteIP) || sevenTwoDot.Contains(v.RemoteIP) || oneNineTwoDot.Contains(v.RemoteIP) {
 			continue
 		}
 		tmp_ := map[string]string{
