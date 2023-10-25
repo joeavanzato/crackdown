@@ -2,13 +2,15 @@ package internal
 
 import (
 	"fmt"
+	"github.com/javanzato/crackdown/internal/helpers"
 	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"strings"
 )
 
-func FindCronJobs(logger *logrus.Logger, detections []Detection) []Detection {
+func FindCronJobs(logger *logrus.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+	defer waitGroup.Done()
 	logger.Info("Finding Cron Jobs...")
 	cronDirs := []string{"/var/spool/cron/crontabs", "/etc/cron.daily", "/etc/cron.hourly", "/etc/cron.monthly", "/etc/cron.weekly", "/etc/cron.d"}
 	cronFilePaths := make([]string, 10)
@@ -24,7 +26,7 @@ func FindCronJobs(logger *logrus.Logger, detections []Detection) []Detection {
 		}
 	}
 	// root crontab on ubuntu-like systems
-	if fileExists("/etc/crontab") {
+	if helpers.FileExists("/etc/crontab") {
 		cronFilePaths = append(cronFilePaths, "/etc/crontab")
 	}
 
@@ -33,7 +35,7 @@ func FindCronJobs(logger *logrus.Logger, detections []Detection) []Detection {
 	for _, cronFile := range cronFilePaths {
 		// slice capacity grows beyond actual files that we store in it due to go adding more than is required when increasing cap
 		if cronFile != "" {
-			lines := readFileToSlice(cronFile, logger)
+			lines := helpers.ReadFileToSlice(cronFile, logger)
 			for _, line := range lines {
 				if strings.HasPrefix(line, "#") {
 					continue
@@ -61,7 +63,7 @@ func FindCronJobs(logger *logrus.Logger, detections []Detection) []Detection {
 						Technique: "T1053.003",
 						Metadata:  tmp_,
 					}
-					detections = append(detections, detection)
+					detections <- detection
 				}
 
 				// Suspicious String Cronjob Detection
@@ -82,7 +84,7 @@ func FindCronJobs(logger *logrus.Logger, detections []Detection) []Detection {
 							Technique: "T1053.003",
 							Metadata:  tmp_,
 						}
-						detections = append(detections, detection)
+						detections <- detection
 						susPatternMatch = true
 						break patternMatch
 					}
@@ -102,10 +104,10 @@ func FindCronJobs(logger *logrus.Logger, detections []Detection) []Detection {
 					Technique: "T1053.003",
 					Metadata:  tmp_,
 				}
-				detections = append(detections, detection)
+				detections <- detection
 			}
 		}
 	}
-	return detections
+	return
 
 }

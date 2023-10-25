@@ -9,14 +9,15 @@ import (
 	"strings"
 )
 
-func FindLocalUsers(logger *logrus.Logger, detections []Detection) []Detection {
+func FindLocalUsers(logger *logrus.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
 	// https://socketloop.com/tutorials/golang-get-all-local-users-and-print-out-their-home-directory-description-and-group-id
+	defer waitGroup.Done()
 	logger.Info("Finding Local Users...")
 	file, err := os.Open("/etc/passwd")
 	defer file.Close()
 	if err != nil {
 		logger.Error(err)
-		return detections
+		return
 	}
 	// TODO - Abstract the reading of file away from user extraction
 	reader := bufio.NewReader(file)
@@ -36,7 +37,7 @@ func FindLocalUsers(logger *logrus.Logger, detections []Detection) []Detection {
 		}
 		if err != nil {
 			logger.Error(err)
-			return detections
+			return
 		}
 	}
 	for _, name := range Users {
@@ -58,7 +59,8 @@ func FindLocalUsers(logger *logrus.Logger, detections []Detection) []Detection {
 			Technique: "T1136.001",
 			Metadata:  tmp_,
 		}
-		detections = append(detections, detection)
+		//detections = append(detections, detection)
+		detections <- detection
 		//logger.Info(detection)
 		/*fmt.Printf("username:%s\n", usr.Username)
 		fmt.Printf("homedir:%s\n", usr.HomeDir)
@@ -67,5 +69,5 @@ func FindLocalUsers(logger *logrus.Logger, detections []Detection) []Detection {
 		fmt.Println("*********************************")*/
 
 	}
-	return detections
+	return
 }

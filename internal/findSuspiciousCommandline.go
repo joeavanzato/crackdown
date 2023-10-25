@@ -2,16 +2,19 @@ package internal
 
 import (
 	"fmt"
+	"github.com/javanzato/crackdown/internal/helpers"
 	"github.com/mitchellh/go-ps"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
-func FindSuspiciousCommandlines(logger *logrus.Logger, detections []Detection) []Detection {
+func FindSuspiciousCommandlines(logger *logrus.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+	defer waitGroup.Done()
+	logger.Info("Finding Suspicious Processes...")
 	processList, err := ps.Processes()
 	if err != nil {
 		logger.Error("Failed to get Running Process list!")
-		return detections
+		return
 	}
 	// https://detection.fyi/sigmahq/sigma/linux/builtin/lnx_shell_susp_rev_shells/
 	suspiciousPatterns := []string{
@@ -41,17 +44,18 @@ func FindSuspiciousCommandlines(logger *logrus.Logger, detections []Detection) [
 		"nc -lvvp",
 		"xterm -display 1",
 	}
+	// TODO - Suspicious Executable Locations
 
 	for x := range processList {
 		var process ps.Process
 		process = processList[x]
 		cmdlineLocation := fmt.Sprintf("/proc/%d/cmdline", process.Pid())
-		cmdline := readFileToString(cmdlineLocation, logger)
+		cmdline := helpers.ReadFileToString(cmdlineLocation, logger)
 		fullCommandLine := fmt.Sprintf("%s %s", process.Executable(), cmdline)
 	patternMatch:
 		for _, pattern := range suspiciousPatterns {
 			//logger.Info(pattern)
-			if SearchStringContains(fullCommandLine, pattern) {
+			if helpers.SearchStringContains(fullCommandLine, pattern) {
 				tmp_ := map[string]string{
 					"Commandline": fullCommandLine,
 					"Pattern":     pattern,
@@ -64,12 +68,11 @@ func FindSuspiciousCommandlines(logger *logrus.Logger, detections []Detection) [
 					Technique: "T1059",
 					Metadata:  tmp_,
 				}
-				detections = append(detections, detection)
+				detections <- detection
 				break patternMatch
 			}
 		}
 		//logger.Printf("PID: %d, CMDLINE: %s", process.Pid(), fullCommandLine)
 	}
-
-	return detections
+	return
 }
