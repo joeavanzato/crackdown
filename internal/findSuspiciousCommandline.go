@@ -17,6 +17,9 @@ func FindSuspiciousCommandlines(logger *logrus.Logger, detections chan<- Detecti
 		return
 	}
 	// https://detection.fyi/sigmahq/sigma/linux/builtin/lnx_shell_susp_rev_shells/
+	// TODO - Port Forwarding
+	// TODO - Suspicious Executable Locations
+
 	suspiciousPatterns := []string{
 		"BEGIN {s = \"/inet/tcp/0/",
 		"bash -i >& /dev/tcp/",
@@ -44,7 +47,6 @@ func FindSuspiciousCommandlines(logger *logrus.Logger, detections chan<- Detecti
 		"nc -lvvp",
 		"xterm -display 1",
 	}
-	// TODO - Suspicious Executable Locations
 
 	for x := range processList {
 		var process ps.Process
