@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"sync"
+	"sync/atomic"
 )
 
 type Detection struct {
@@ -17,6 +19,7 @@ type Detection struct {
 func (d Detection) String() string {
 	// Format the string of a detection to properly iterate over the Metadata when rendering
 	// TODO - Ths second loop after sort for some reason is introducing empty keys to the array - not sure why.
+	// - I think the above is because we are not trimming /n - now we are doing this properly in each string read from files.
 	var base string
 	dv := reflect.ValueOf(d)
 	typeOfS := dv.Type()
@@ -50,4 +53,23 @@ func (d Detection) String() string {
 		}
 	}
 	return base
+}
+
+type WaitGroupCount struct {
+	sync.WaitGroup
+	count int64
+}
+
+func (wg *WaitGroupCount) Add(delta int) {
+	atomic.AddInt64(&wg.count, int64(delta))
+	wg.WaitGroup.Add(delta)
+}
+
+func (wg *WaitGroupCount) Done() {
+	atomic.AddInt64(&wg.count, -1)
+	wg.WaitGroup.Done()
+}
+
+func (wg *WaitGroupCount) GetCount() int {
+	return int(atomic.LoadInt64(&wg.count))
 }
