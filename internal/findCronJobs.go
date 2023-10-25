@@ -49,22 +49,6 @@ func FindCronJobs(logger *logrus.Logger, detections chan<- Detection, waitGroup 
 				for i, name := range match {
 					results[cronRegex.SubexpNames()[i]] = name
 				}
-				// Root Cronjob Detection
-				if results["user"] == "root" {
-					tmp_ := map[string]string{
-						"User":    "root",
-						"Command": results["command"],
-						"File":    cronFile,
-					}
-					detection := Detection{
-						Name:      "Root Cronjob Review",
-						Severity:  1,
-						Tip:       "Verify validity of cronjob.",
-						Technique: "T1053.003",
-						Metadata:  tmp_,
-					}
-					detections <- detection
-				}
 
 				// Suspicious String Cronjob Detection
 				susPatternMatch := false
@@ -92,6 +76,24 @@ func FindCronJobs(logger *logrus.Logger, detections chan<- Detection, waitGroup 
 				if susPatternMatch {
 					continue
 				}
+				// Root Cronjob Detection
+				if results["user"] == "root" {
+					tmp_ := map[string]string{
+						"User":    "root",
+						"Command": results["command"],
+						"File":    cronFile,
+					}
+					detection := Detection{
+						Name:      "Root Cronjob Review",
+						Severity:  1,
+						Tip:       "Verify validity of cronjob.",
+						Technique: "T1053.003",
+						Metadata:  tmp_,
+					}
+					detections <- detection
+					continue
+				}
+
 				tmp_ := map[string]string{
 					"User":    results["user"],
 					"Command": results["command"],
