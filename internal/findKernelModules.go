@@ -83,7 +83,7 @@ func FindKernelModules(logger zerolog.Logger, detections chan<- Detection, waitG
 				}
 				detection := Detection{
 					Name:      "Kernel Module modified within last 30 days",
-					Severity:  3,
+					Severity:  2,
 					Tip:       "Investigate module to determine validity.",
 					Technique: "T1547.006",
 					Metadata:  tmp_,
