@@ -97,6 +97,7 @@ func getBackdoorFiles(logger zerolog.Logger) {
 		"/sbin/init.d",
 		"/etc/rc.local",
 		"/etc/apt/apt.conf.d",
+		"/usr/share/unattended-upgrades",
 	}
 	f1, err := filepath.Glob("/home/*/.gitconfig")
 	if err != nil {
