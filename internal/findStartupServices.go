@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -44,8 +43,29 @@ func CheckStartupServices(logger zerolog.Logger, detections chan<- Detection, wa
 		result := false
 	lineCheck:
 		for _, line := range fileSlice {
-			if strings.HasPrefix(line, "Exec") || strings.HasPrefix(line, "Environment=") {
-				result = checkLine(logger, detection, detections, line)
+			if strings.HasPrefix(line, "Exec") || strings.HasPrefix(line, "Environment") {
+				lineData := strings.SplitN(line, "=", 2)
+				detection.Metadata[lineData[0]] = line
+				detection.Metadata["ConfigType"] = lineData[0]
+				detection.Metadata["Line"] = line
+
+				detection.Name = "Webshell Pattern in Service Configuration"
+				result = checkWebshellContent(detection, detections, lineData[1])
+				if result {
+					break lineCheck
+				}
+				detection.Name = "Suspicious Pattern in Service Configuration"
+				result = checkSuspiciousContent(detection, detections, lineData[1])
+				if result {
+					break lineCheck
+				}
+				detection.Name = "IP Address Pattern in Service Configuration"
+				result = checkIPContent(detection, detections, lineData[1])
+				if result {
+					break lineCheck
+				}
+				detection.Name = "Domain Pattern in Service Configuration"
+				result = checkDomainContent(detection, detections, lineData[1])
 				if result {
 					break lineCheck
 				}
@@ -58,38 +78,11 @@ func CheckStartupServices(logger zerolog.Logger, detections chan<- Detection, wa
 				// File modified within last 30 days
 				detection.Name = "Service File modified within last 30 days."
 				detection.Metadata["DaysAgo"] = dayDiff
-				detection.Severity = 1
+				detection.Severity = 2
 				detections <- detection
 			}
 		}
 	}
-}
-
-func checkLine(logger zerolog.Logger, detection Detection, detections chan<- Detection, lineContent string) bool {
-	lineData := strings.SplitN(lineContent, "=", 2)
-	detection.Metadata[lineData[0]] = lineContent
-	detection.Metadata["ConfigType"] = lineData[0]
-	for _, pattern := range suspiciousPatterns {
-		if helpers.SearchStringContains(lineData[1], pattern) {
-			detection.Name = "Suspicious Pattern in Service ExecStart"
-			detection.Metadata["Pattern"] = pattern
-			detections <- detection
-			return true
-		}
-	}
-	ipv4Match, _ := regexp.MatchString(ipv4Regex+`|`+ipv6Regex, lineContent)
-	if ipv4Match {
-		detection.Name = "IP Address Pattern in Service Configuration"
-		detections <- detection
-		return true
-	}
-	domainMatch, _ := regexp.MatchString(domainRegex, lineContent)
-	if domainMatch {
-		detection.Name = "Domain Pattern in Service Configuration"
-		detections <- detection
-		return true
-	}
-	return false
 }
 
 func getServiceFiles(logger zerolog.Logger) error {
