@@ -1,11 +1,15 @@
 package main
 
-// TODO - MOTD Review
 // TODO - Startup Files ~/.config/autostart/
+// https://arcolinux.com/how-to-autostart-any-application-on-any-linux-desktop/
 // TODO - Driver checks - covered by kernel checks?
 // TODO - apt.conf.d directory for recent files/suspicious patterns
 // TODO - Check ~/.gitconfig for suspicious patterns/modifications
 // TODO - Check .git/hooks for suspicious patterns/recent files
+// TODO - Inspect SUDOers file for NOPASSWD Entries
+// https://research.splunk.com/endpoint/ab1e0d52-624a-11ec-8e0b-acde48001122/
+// https://askubuntu.com/questions/334318/sudoers-file-enable-nopasswd-for-user-all-commands
+// TODO - Find better way to abstract generic content checking for suspicious-ness - to much re-use of same logic
 
 import (
 	"encoding/json"
@@ -143,7 +147,7 @@ func main() {
 	//  Channel Initial Allocation necessary?
 	receiveDetections := make(chan internal.Detection)
 	var waitGroup internal.WaitGroupCount
-	waitGroup.Add(8)
+	waitGroup.Add(11)
 	go internal.FindLocalUsers(logger, receiveDetections, &waitGroup)
 	go internal.FindCronJobs(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousCommandlines(logger, receiveDetections, &waitGroup)
@@ -152,6 +156,9 @@ func main() {
 	go internal.FindKernelModules(logger, receiveDetections, &waitGroup)
 	go internal.CheckShellConfigs(logger, receiveDetections, &waitGroup)
 	go internal.CheckStartupServices(logger, receiveDetections, &waitGroup)
+	go internal.CheckUserStartupScripts(logger, receiveDetections, &waitGroup)
+	go internal.CheckCommonBackdoors(logger, receiveDetections, &waitGroup)
+	go internal.CheckEnvironmentVariables(logger, receiveDetections, &waitGroup)
 	go closeChannelWhenDone(receiveDetections, &waitGroup)
 	detections, detectionCount := listenDetections(receiveDetections)
 	logger.Info().Msgf("Detection Count: %d", detectionCount)
