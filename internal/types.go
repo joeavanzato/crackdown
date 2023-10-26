@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
 	"reflect"
 	"sort"
 	"sync"
@@ -13,7 +14,16 @@ type Detection struct {
 	Severity  int
 	Tip       string
 	Technique string
-	Metadata  map[string]string
+	Metadata  map[string]interface{}
+}
+
+func (d Detection) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("name", d.Name).
+		Int("severity", d.Severity).
+		Str("tip", d.Tip).
+		Str("technique", d.Technique).
+		Fields(d.Metadata)
+
 }
 
 func (d Detection) String() string {
