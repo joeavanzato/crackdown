@@ -2,21 +2,21 @@ package internal
 
 import (
 	"bufio"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"io"
 	"os"
 	"os/user"
 	"strings"
 )
 
-func FindLocalUsers(logger *logrus.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+func FindLocalUsers(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
 	// https://socketloop.com/tutorials/golang-get-all-local-users-and-print-out-their-home-directory-description-and-group-id
 	defer waitGroup.Done()
-	logger.Info("Finding Local Users...")
+	logger.Info().Msg("Finding Local Users...")
 	file, err := os.Open("/etc/passwd")
 	defer file.Close()
 	if err != nil {
-		logger.Error(err)
+		logger.Error().Err(err)
 		return
 	}
 	// TODO - Abstract the reading of file away from user extraction
@@ -36,17 +36,17 @@ func FindLocalUsers(logger *logrus.Logger, detections chan<- Detection, waitGrou
 			break
 		}
 		if err != nil {
-			logger.Error(err)
+			logger.Error().Err(err)
 			return
 		}
 	}
 	for _, name := range Users {
 		usr, err := user.Lookup(name)
 		if err != nil {
-			logger.Error(err)
+			logger.Error().Err(err)
 		}
 
-		tmp_ := map[string]string{
+		tmp_ := map[string]interface{}{
 			"Username":     strings.TrimSpace(usr.Username),
 			"_HomeDir":     strings.TrimSpace(usr.HomeDir),
 			"_GroupID":     strings.TrimSpace(usr.Gid),

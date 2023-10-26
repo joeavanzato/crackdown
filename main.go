@@ -5,11 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/javanzato/crackdown/internal"
-	"github.com/sirupsen/logrus"
-	"github.com/x-cray/logrus-prefixed-formatter"
+	"github.com/rs/zerolog"
 	"io"
 	"os"
+	"strings"
+	"time"
 )
+
+const logFile = "crackdown.log"
 
 var severityMap = map[int]string{
 	0: "INFO",
@@ -21,8 +24,9 @@ var severityMap = map[int]string{
 
 type anyMap map[string]interface{}
 
-func setupLogger() *logrus.Logger {
-	logFileName := "crackdown.log"
+/*func setupLogger() *logrus.Logger {
+
+	logFileName := logFile
 	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		_, err := fmt.Fprintf(os.Stderr, "Couldn't Initialize Log File: %s", err)
@@ -41,6 +45,30 @@ func setupLogger() *logrus.Logger {
 			ForceFormatting: true,
 		},
 	}
+
+	return logger
+}*/
+
+func setupLogger() zerolog.Logger {
+	logFileName := logFile
+	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		_, err := fmt.Fprintf(os.Stderr, "Couldn't Initialize Log File: %s", err)
+		if err != nil {
+			panic(nil)
+		}
+		panic(err)
+	}
+	cw := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: time.RFC3339,
+		FormatLevel: func(i interface{}) string {
+			return strings.ToUpper(fmt.Sprintf("[%s]", i))
+		},
+	}
+	mw := io.MultiWriter(cw, logFile)
+	logger := zerolog.New(mw).Level(zerolog.TraceLevel)
+	logger = logger.With().Timestamp().Logger()
 	return logger
 }
 
@@ -75,7 +103,7 @@ func closeChannelWhenDone(c chan internal.Detection, waitGroup *internal.WaitGro
 	close(c)
 }
 
-func parseArgs(logger *logrus.Logger) anyMap {
+func parseArgs(logger zerolog.Logger) anyMap {
 	quiet := flag.Bool("quiet", false, "Suppress most Console Logging")
 
 	flag.Parse()
@@ -85,11 +113,11 @@ func parseArgs(logger *logrus.Logger) anyMap {
 	return arguments
 }
 
-func writeJSONOut(logger *logrus.Logger, detections []internal.Detection, detectionCount int) {
+func writeJSONOut(logger zerolog.Logger, detections []internal.Detection, detectionCount int) {
 	detections = detections[len(detections)-detectionCount:]
 	content, err := json.MarshalIndent(detections, "", "\t")
 	if err != nil {
-		logger.Error(err)
+		logger.Error().Err(err)
 	}
 	f, err := os.Create("detections.json")
 	if err != nil {
@@ -97,7 +125,7 @@ func writeJSONOut(logger *logrus.Logger, detections []internal.Detection, detect
 	}
 	_, err = f.Write(content)
 	if err != nil {
-		logger.Error(err)
+		logger.Error().Err(err)
 	}
 }
 
@@ -107,19 +135,24 @@ func main() {
 	printLogo()
 	receiveDetections := make(chan internal.Detection)
 	var waitGroup internal.WaitGroupCount
-	waitGroup.Add(4)
+	waitGroup.Add(5)
 	go internal.FindLocalUsers(logger, receiveDetections, &waitGroup)
 	go internal.FindCronJobs(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousCommandlines(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousConnections(logger, receiveDetections, &waitGroup)
+	go internal.FindSSHAuthorizedKeys(logger, receiveDetections, &waitGroup)
 	go closeChannelWhenDone(receiveDetections, &waitGroup)
 	detections, detectionCount := listenDetections(receiveDetections)
-	logger.Infof("Detection Count: %d", detectionCount)
+	logger.Info().Msgf("Detection Count: %d", detectionCount)
 	if arguments["quiet"] == false {
 		for _, i := range detections {
 			if i.Metadata != nil {
 				// The slice might be longer than the 'real' elements present.
-				logger.Info(i)
+				logger.Info().
+					Str(" Name", i.Name).
+					Str(" Severity", severityMap[i.Severity]).
+					Str("Tip", i.Tip).
+					Fields(i.Metadata).Msg("")
 			}
 		}
 	}

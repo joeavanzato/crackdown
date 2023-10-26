@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"github.com/javanzato/crackdown/internal/helpers"
 	"github.com/mitchellh/go-ps"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"strconv"
 )
 
-func FindSuspiciousCommandlines(logger *logrus.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+func FindSuspiciousCommandlines(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
 	defer waitGroup.Done()
-	logger.Info("Finding Suspicious Processes...")
+	logger.Info().Msg("Finding Suspicious Processes...")
 	processList, err := ps.Processes()
 	if err != nil {
-		logger.Error("Failed to get Running Process list!")
+		logger.Error().Err(err)
 		return
 	}
 	// https://detection.fyi/sigmahq/sigma/linux/builtin/lnx_shell_susp_rev_shells/
@@ -58,7 +58,7 @@ func FindSuspiciousCommandlines(logger *logrus.Logger, detections chan<- Detecti
 		for _, pattern := range suspiciousPatterns {
 			//logger.Info(pattern)
 			if helpers.SearchStringContains(fullCommandLine, pattern) {
-				tmp_ := map[string]string{
+				tmp_ := map[string]interface{}{
 					"Commandline": fullCommandLine,
 					"Pattern":     pattern,
 					"PID":         strconv.Itoa(process.Pid()),

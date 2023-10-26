@@ -2,7 +2,7 @@ package helpers
 
 import (
 	"bufio"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"io"
 	"os"
 	"strings"
@@ -16,11 +16,11 @@ func FileExists(filename string) bool {
 	return true
 }
 
-func ReadFileToSlice(filename string, logger *logrus.Logger) []string {
+func ReadFileToSlice(filename string, logger zerolog.Logger) []string {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
-		logger.Error(err)
+		logger.Error().Err(err)
 		return make([]string, 0)
 	}
 	reader := bufio.NewReader(file)
@@ -32,7 +32,7 @@ func ReadFileToSlice(filename string, logger *logrus.Logger) []string {
 			break
 		}
 		if err != nil {
-			logger.Error(err)
+			logger.Error().Err(err)
 			return make([]string, 0)
 		}
 	}
@@ -40,11 +40,11 @@ func ReadFileToSlice(filename string, logger *logrus.Logger) []string {
 	//reader := bufio.NewReader(file)
 }
 
-func ReadFileToString(filename string, logger *logrus.Logger) string {
+func ReadFileToString(filename string, logger zerolog.Logger) string {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
-		logger.Error(err)
+		logger.Error().Err(err)
 		return ""
 	}
 	reader := bufio.NewReader(file)
@@ -56,7 +56,7 @@ func ReadFileToString(filename string, logger *logrus.Logger) string {
 			break
 		}
 		if err != nil {
-			logger.Error(err)
+			logger.Error().Err(err)
 			return ""
 		}
 	}

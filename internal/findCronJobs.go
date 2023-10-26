@@ -3,21 +3,21 @@ package internal
 import (
 	"fmt"
 	"github.com/javanzato/crackdown/internal/helpers"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"os"
 	"regexp"
 	"strings"
 )
 
-func FindCronJobs(logger *logrus.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+func FindCronJobs(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
 	defer waitGroup.Done()
-	logger.Info("Finding Cron Jobs...")
+	logger.Info().Msg("Finding Cron Jobs...")
 	cronDirs := []string{"/var/spool/cron/crontabs", "/etc/cron.daily", "/etc/cron.hourly", "/etc/cron.monthly", "/etc/cron.weekly", "/etc/cron.d"}
 	cronFilePaths := make([]string, 10)
 	for _, path := range cronDirs {
 		files, err := os.ReadDir(path)
 		if err != nil {
-			logger.Error(err)
+			logger.Error().Err(err)
 			continue
 		}
 		for _, file := range files {
@@ -55,7 +55,7 @@ func FindCronJobs(logger *logrus.Logger, detections chan<- Detection, waitGroup 
 			patternMatch:
 				for _, pattern := range suspiciousPatterns {
 					if strings.Contains(line, pattern) {
-						tmp_ := map[string]string{
+						tmp_ := map[string]interface{}{
 							"User":    results["user"],
 							"Command": results["command"],
 							"File":    cronFile,
@@ -78,7 +78,7 @@ func FindCronJobs(logger *logrus.Logger, detections chan<- Detection, waitGroup 
 				}
 				// Root Cronjob Detection
 				if results["user"] == "root" {
-					tmp_ := map[string]string{
+					tmp_ := map[string]interface{}{
 						"User":    "root",
 						"Command": results["command"],
 						"File":    cronFile,
@@ -94,7 +94,7 @@ func FindCronJobs(logger *logrus.Logger, detections chan<- Detection, waitGroup 
 					continue
 				}
 
-				tmp_ := map[string]string{
+				tmp_ := map[string]interface{}{
 					"User":    results["user"],
 					"Command": results["command"],
 					"File":    cronFile,

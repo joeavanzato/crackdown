@@ -3,7 +3,7 @@ package internal
 import (
 	"github.com/bastjan/netstat"
 	"github.com/javanzato/crackdown/internal/helpers"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"net"
 	"strconv"
 	"strings"
@@ -22,14 +22,14 @@ var suspiciousPorts = map[int]bool{
 	3389: true,
 }
 
-func FindSuspiciousConnections(logger *logrus.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+func FindSuspiciousConnections(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
 	defer waitGroup.Done()
 	// TODO - Suspicious Ports
 	// TODO - Suspicious Executable with Network Connection
-	logger.Info("Finding Suspicious Connections...")
+	logger.Info().Msg("Finding Suspicious Connections...")
 	connections, err := netstat.TCP.Connections()
 	if err != nil {
-		logger.Error(err)
+		logger.Error().Err(err)
 		return
 	}
 	skipIPs := map[string]bool{
@@ -69,7 +69,7 @@ func FindSuspiciousConnections(logger *logrus.Logger, detections chan<- Detectio
 		if tenDot.Contains(v.RemoteIP) || sevenTwoDot.Contains(v.RemoteIP) || oneNineTwoDot.Contains(v.RemoteIP) {
 			continue
 		}
-		tmp_ := map[string]string{
+		tmp_ := map[string]interface{}{
 			"RemoteAddress": v.RemoteIP.String(),
 			"LocalPort":     strconv.Itoa(v.Port),
 			"RemotePort":    strconv.Itoa(v.RemotePort),
