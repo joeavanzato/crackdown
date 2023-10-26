@@ -33,6 +33,8 @@ func FindCronJobs(logger zerolog.Logger, detections chan<- Detection, waitGroup 
 	suspiciousPatterns := []string{"https://", "/bin/sh -c", "/dev/tcp", "/dev/null", "bash -i >&", "$(dig"}
 	cronRegex := regexp.MustCompile(`[\d*]{1,4}\s[\d*]{1,4}\s[\d*]{1,4}\s[\d*]{1,4}\s[\d*]{1,4}\s(?P<user>.*?)\s.*?(?P<command>.+)`)
 	for _, cronFile := range cronFilePaths {
+		// TODO - IP Check in Cronjob Line
+		// TODO - General Cleanup
 		// slice capacity grows beyond actual files that we store in it due to go adding more than is required when increasing cap
 		if cronFile != "" {
 			lines := helpers.ReadFileToSlice(cronFile, logger)
@@ -49,25 +51,28 @@ func FindCronJobs(logger zerolog.Logger, detections chan<- Detection, waitGroup 
 				for i, name := range match {
 					results[cronRegex.SubexpNames()[i]] = name
 				}
+				tmp_ := map[string]interface{}{
+					"User":    "root",
+					"Command": results["command"],
+					"File":    cronFile,
+				}
+				detection := Detection{
+					Name:      "Cronjob Review",
+					Severity:  1,
+					Tip:       "Verify validity of cronjob.",
+					Technique: "T1053.003",
+					Metadata:  tmp_,
+				}
 
 				// Suspicious String Cronjob Detection
 				susPatternMatch := false
 			patternMatch:
 				for _, pattern := range suspiciousPatterns {
 					if strings.Contains(line, pattern) {
-						tmp_ := map[string]interface{}{
-							"User":    results["user"],
-							"Command": results["command"],
-							"File":    cronFile,
-							"Pattern": pattern,
-						}
-						detection := Detection{
-							Name:      "Suspicious string in Cronjob",
-							Severity:  2,
-							Tip:       "Verify validity of cronjob.",
-							Technique: "T1053.003",
-							Metadata:  tmp_,
-						}
+						detection.Severity = 2
+						detection.Name = "Suspicious Pattern in Cronjob Command"
+						detection.Metadata["Pattern"] = pattern
+						detection.Metadata["User"] = results["user"]
 						detections <- detection
 						susPatternMatch = true
 						break patternMatch
@@ -76,25 +81,33 @@ func FindCronJobs(logger zerolog.Logger, detections chan<- Detection, waitGroup 
 				if susPatternMatch {
 					continue
 				}
-				// Root Cronjob Detection
-				if results["user"] == "root" {
-					tmp_ := map[string]interface{}{
-						"User":    "root",
-						"Command": results["command"],
-						"File":    cronFile,
-					}
-					detection := Detection{
-						Name:      "Root Cronjob Review",
-						Severity:  1,
-						Tip:       "Verify validity of cronjob.",
-						Technique: "T1053.003",
-						Metadata:  tmp_,
-					}
+
+				// IP/Domain Regex Detection
+				ipv4Match, _ := regexp.MatchString(ipv4_regex+`|`+ipv6_regex, results["command"])
+				if ipv4Match {
+					detection.Metadata["User"] = results["user"]
+					detection.Name = "IP Address Pattern in Cron Command"
+					detections <- detection
+					continue
+				}
+				domainMatch, _ := regexp.MatchString(domain_regex, results["command"])
+				if domainMatch {
+					detection.Metadata["User"] = results["user"]
+					detection.Name = "Domain Pattern in Cron Command"
 					detections <- detection
 					continue
 				}
 
-				tmp_ := map[string]interface{}{
+				// Root Cronjob Detection - Should be last as a system-wide catch-all
+				if results["user"] == "root" {
+					detection.Metadata["User"] = "root"
+					detection.Name = "Root Cronjob Review"
+					detections <- detection
+					continue
+				}
+
+				// TODO - Review - Removing generic cronjob review for now.
+				/*tmp_ := map[string]interface{}{
 					"User":    results["user"],
 					"Command": results["command"],
 					"File":    cronFile,
@@ -105,8 +118,8 @@ func FindCronJobs(logger zerolog.Logger, detections chan<- Detection, waitGroup 
 					Tip:       "Verify validity of cronjob.",
 					Technique: "T1053.003",
 					Metadata:  tmp_,
-				}
-				detections <- detection
+				}*/
+				//detections <- detection
 			}
 		}
 	}
