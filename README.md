@@ -7,8 +7,6 @@ crackdown
 <h2 align="center">
 Linux Persistence Hunter
 </h2>
- 
-### Linux Persistence Hunter
 
 #### What is it?
 
@@ -28,8 +26,9 @@ It must be run as sudo to be effective.
 * **SSH Authorized Keys** [T1098.004]
 * **Modified Kernel Modules** [T1547.006]
 * **Modified .bashrc Files** [T1546.004]
+* **Created/Modified Service Files/Service Confs** [T1543.002]
 
-#### MITRE Techniques Inspected
+#### MITRE Techniques Evaluated
 * T1547.006 - Boot or Logon Autostart Execution: Kernel Modules and Extensions
 * T1546.004 - Event Triggered Execution: Unix Shell Configuration Modification
 * T1098.004 - Account Manipulation: SSH Authorized Keys
@@ -37,20 +36,17 @@ It must be run as sudo to be effective.
 * T1053.003 - Scheduled Task/Job: Cron
 * T1071 - Application Layer Protocol
 * T1059 - Command and Scripting Interpreter
+* T1543.002 - Create or Modify System Process: Systemd Service
 
 TODO:
 * SUID Binary Modification
-* Startup Service Examination
 * MOTD Modification
 * User Startup File Modification
-* Driver Modification
 * apt Backdoor
 * git Backdoor
 * git Hooks
-* Installed Kernel MOodules
 * doas conf file 
 * at allow config file
 * sudoers tmp file
 * visudo utility execution
-* .bashrc/zshrc modification
 * Non-standard binary installation
