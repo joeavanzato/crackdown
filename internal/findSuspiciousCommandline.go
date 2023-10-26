@@ -20,34 +20,6 @@ func FindSuspiciousCommandlines(logger zerolog.Logger, detections chan<- Detecti
 	// TODO - Port Forwarding
 	// TODO - Suspicious Executable Locations
 
-	suspiciousPatterns := []string{
-		"BEGIN {s = \"/inet/tcp/0/",
-		"bash -i >& /dev/tcp/",
-		"bash -i >& /dev/udp/",
-		"sh -i >$ /dev/udp/",
-		"sh -i >$ /dev/tcp/",
-		"&& while read line 0<&5; do",
-		"/bin/bash -c exec 5<>/dev/tcp/",
-		"/bin/bash -c exec 5<>/dev/udp/",
-		"nc -e /bin/sh ",
-		"/bin/sh | nc",
-		"rm -f backpipe; mknod /tmp/backpipe p && nc ",
-		";socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($p,inet_aton($i))))",
-		";STDIN->fdopen($c,r);$~->fdopen($c,w);system$_ while<>;",
-		"/bin/sh -i <&3 >&3 2>&3",
-		"uname -a; w; id; /bin/bash -i",
-		"([text.encoding]::ASCII).GetBytes",
-		"$stream.Flush()",
-		"exec sprintf(\"/bin/sh -i <&%d >&%d 2>&%d\",f,f,f)",
-		"while(cmd=c.gets);IO.popen(cmd,\"r\"){|io|c.print",
-		"socat exec:''bash -li'',pty,stderr,setsid,sigint,sane tcp",
-		"rm -f /tmp/p; mknod /tmp/p p &&",
-		"/bin/bash | telnet",
-		"echo=0,raw tcp-listen:",
-		"nc -lvvp",
-		"xterm -display 1",
-	}
-
 	for x := range processList {
 		var process ps.Process
 		process = processList[x]
