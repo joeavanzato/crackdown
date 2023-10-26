@@ -13,6 +13,7 @@ func FindSSHAuthorizedKeys(logger zerolog.Logger, detections chan<- Detection, w
 	// TODO - Add additional possible properties to detection metadata
 	logger.Info().Msg("Finding Authorized SSH Keys...")
 	files, err := filepath.Glob("/home/*/.ssh/authorized_keys")
+	files = append(files, "/root/.ssh/authorized_keys")
 	if err != nil {
 		logger.Error().Err(err)
 		return
@@ -21,6 +22,9 @@ func FindSSHAuthorizedKeys(logger zerolog.Logger, detections chan<- Detection, w
 		"ssh-dss", "ssh-rsa", "ecdsa-sha2-nistp256", "ecdsa-sha2- nistp384", "ecdsa-sha2-nistp521", "ssh-ed25519",
 	}
 	for _, file := range files {
+		if helpers.FileExists(file) == false {
+			continue
+		}
 		lines := helpers.ReadFileToSlice(file, logger)
 		// File Modification Check
 		fileStat, err := os.Stat(file)
