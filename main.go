@@ -1,5 +1,12 @@
 package main
 
+// TODO - MOTD Review
+// TODO - Startup Files ~/.config/autostart/
+// TODO - Driver checks - covered by kernel checks?
+// TODO - apt.conf.d directory for recent files/suspicious patterns
+// TODO - Check ~/.gitconfig for suspicious patterns/modifications
+// TODO - Check .git/hooks for suspicious patterns/recent files
+
 import (
 	"encoding/json"
 	"flag"
@@ -136,15 +143,15 @@ func main() {
 	//  Channel Initial Allocation necessary?
 	receiveDetections := make(chan internal.Detection)
 	var waitGroup internal.WaitGroupCount
-	waitGroup.Add(7)
+	waitGroup.Add(8)
 	go internal.FindLocalUsers(logger, receiveDetections, &waitGroup)
 	go internal.FindCronJobs(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousCommandlines(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousConnections(logger, receiveDetections, &waitGroup)
 	go internal.FindSSHAuthorizedKeys(logger, receiveDetections, &waitGroup)
 	go internal.FindKernelModules(logger, receiveDetections, &waitGroup)
-	go internal.CheckBashrc(logger, receiveDetections, &waitGroup)
-
+	go internal.CheckShellConfigs(logger, receiveDetections, &waitGroup)
+	go internal.CheckStartupServices(logger, receiveDetections, &waitGroup)
 	go closeChannelWhenDone(receiveDetections, &waitGroup)
 	detections, detectionCount := listenDetections(receiveDetections)
 	logger.Info().Msgf("Detection Count: %d", detectionCount)
