@@ -1,10 +1,8 @@
 package internal
 
 import (
-	"github.com/javanzato/crackdown/internal/helpers"
 	"github.com/rs/zerolog"
 	"os"
-	"regexp"
 	"strings"
 )
 
@@ -27,31 +25,22 @@ func CheckEnvironmentVariables(logger zerolog.Logger, detections chan<- Detectio
 			Technique: "T1574",
 			Metadata:  tmp_,
 		}
-		checkContent(detection, detections, envValue)
 
-	}
-}
-
-func checkContent(detection Detection, detections chan<- Detection, lineContent string) bool {
-	for _, pattern := range suspiciousPatterns {
-		if helpers.SearchStringContains(lineContent, pattern) {
-			detection.Name = "Suspicious Pattern in Environment Variable"
-			detection.Metadata["Pattern"] = pattern
-			detections <- detection
-			return true
+		detection.Name = "Suspicious Pattern in Environment Variable"
+		result := checkSuspiciousContent(detection, detections, envValue)
+		if result {
+			continue
 		}
-	}
-	ipv4Match, _ := regexp.MatchString(ipv4Regex+`|`+ipv6Regex, lineContent)
-	if ipv4Match {
 		detection.Name = "IP Address Pattern in Environment Variable"
-		detections <- detection
-		return true
-	}
-	domainMatch, _ := regexp.MatchString(domainRegex, lineContent)
-	if domainMatch {
+		result = checkIPContent(detection, detections, envValue)
+		if result {
+			continue
+		}
 		detection.Name = "Domain Pattern in Environment Variable"
-		detections <- detection
-		return true
+		result = checkDomainContent(detection, detections, envValue)
+		if result {
+			continue
+		}
+
 	}
-	return false
 }
