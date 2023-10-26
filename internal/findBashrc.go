@@ -11,12 +11,20 @@ func CheckBashrc(logger zerolog.Logger, detections chan<- Detection, waitGroup *
 	defer waitGroup.Done()
 	logger.Info().Msg("Checking .bashrc Files...")
 	files, err := filepath.Glob("/home/*/.bashrc")
-	files = append(files, "/root/.bashrc")
 	if err != nil {
 		logger.Error().Err(err)
 		return
 	}
+	zfiles, zerr := filepath.Glob("/home/*/.zshrc")
+	if zerr != nil {
+		logger.Error().Err(zerr)
+		return
+	}
+	files = append(files, zfiles...)
+	files = append(files, "/root/.bashrc")
+	files = append(files, "/etc/zsh/zshrc")
 	for _, file := range files {
+		// TODO - Check for IP Address in commandline
 		if helpers.FileExists(file) == false {
 			continue
 		}
