@@ -5,9 +5,10 @@ import (
 	"github.com/rs/zerolog"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
-func CheckBashrc(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+func CheckShellConfigs(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
 	defer waitGroup.Done()
 	logger.Info().Msg("Checking .bashrc Files...")
 	files, err := filepath.Glob("/home/*/.bashrc")
@@ -37,24 +38,37 @@ func CheckBashrc(logger zerolog.Logger, detections chan<- Detection, waitGroup *
 		} else {
 			fileModificationTime = fileStat.ModTime().UTC().String()
 		}
+		tmp_ := map[string]interface{}{
+			"Modified": fileModificationTime,
+			"File":     file,
+		}
+		detection := Detection{
+			Name:      "Suspicious Shell Configuration File",
+			Severity:  2,
+			Tip:       "Investigate file to determine validity.",
+			Technique: "T1546.004",
+			Metadata:  tmp_,
+		}
 	patternMatch:
 		for _, pattern := range suspiciousPatterns {
 			if helpers.SearchStringContains(fileContents, pattern) {
-				tmp_ := map[string]interface{}{
-					"Modified": fileModificationTime,
-					"Pattern":  pattern,
-					"File":     file,
-				}
-				detection := Detection{
-					Name:      "Suspicious Pattern in .bashrc File",
-					Severity:  2,
-					Tip:       "Investigate file to determine validity.",
-					Technique: "T1546.004",
-					Metadata:  tmp_,
-				}
+				detection.Name = "Suspicious Pattern in Shell Configuration File"
+				detection.Metadata["Pattern"] = pattern
 				detections <- detection
 				break patternMatch
 			}
+		}
+		ipv4Match, _ := regexp.MatchString(ipv4_regex+`|`+ipv6_regex, fileContents)
+		if ipv4Match {
+			detection.Name = "IP Address Pattern in Shell Configuration File"
+			detections <- detection
+			continue
+		}
+		domainMatch, _ := regexp.MatchString(domain_regex, fileContents)
+		if domainMatch {
+			detection.Name = "Domain Pattern in Shell Configuration File"
+			detections <- detection
+			continue
 		}
 
 	}
