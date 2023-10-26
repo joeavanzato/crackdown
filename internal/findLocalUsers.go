@@ -20,6 +20,7 @@ func FindLocalUsers(logger zerolog.Logger, detections chan<- Detection, waitGrou
 		return
 	}
 	// TODO - Abstract the reading of file away from user extraction
+	// TODO - Parse user privileges to find users with sudo, etc.
 	reader := bufio.NewReader(file)
 	var Users []string
 	for {
