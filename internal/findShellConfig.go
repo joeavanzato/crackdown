@@ -23,6 +23,7 @@ func CheckShellConfigs(logger zerolog.Logger, detections chan<- Detection, waitG
 	}
 	files = append(files, zfiles...)
 	files = append(files, "/root/.bashrc")
+	files = append(files, "/etc/bash.bashrc")
 	files = append(files, "/etc/zsh/zshrc")
 	for _, file := range files {
 		if helpers.FileExists(file) == false {
