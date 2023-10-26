@@ -30,7 +30,6 @@ func FindCronJobs(logger zerolog.Logger, detections chan<- Detection, waitGroup 
 		cronFilePaths = append(cronFilePaths, "/etc/crontab")
 	}
 
-	suspiciousPatterns := []string{"https://", "/bin/sh -c", "/dev/tcp", "/dev/null", "bash -i >&", "$(dig"}
 	cronRegex := regexp.MustCompile(`[\d*]{1,4}\s[\d*]{1,4}\s[\d*]{1,4}\s[\d*]{1,4}\s[\d*]{1,4}\s(?P<user>.*?)\s.*?(?P<command>.+)`)
 	for _, cronFile := range cronFilePaths {
 		// TODO - IP Check in Cronjob Line
@@ -83,17 +82,19 @@ func FindCronJobs(logger zerolog.Logger, detections chan<- Detection, waitGroup 
 				}
 
 				// IP/Domain Regex Detection
-				ipv4Match, _ := regexp.MatchString(ipv4_regex+`|`+ipv6_regex, results["command"])
+				ipv4Match, _ := regexp.MatchString(ipv4Regex+`|`+ipv6Regex, line)
 				if ipv4Match {
 					detection.Metadata["User"] = results["user"]
-					detection.Name = "IP Address Pattern in Cron Command"
+					detection.Metadata["Line"] = line
+					detection.Name = "IP Address Pattern in Cron line"
 					detections <- detection
 					continue
 				}
-				domainMatch, _ := regexp.MatchString(domain_regex, results["command"])
+				domainMatch, _ := regexp.MatchString(domainRegex, line)
 				if domainMatch {
 					detection.Metadata["User"] = results["user"]
-					detection.Name = "Domain Pattern in Cron Command"
+					detection.Metadata["Line"] = line
+					detection.Name = "Domain Pattern in Cron line"
 					detections <- detection
 					continue
 				}
