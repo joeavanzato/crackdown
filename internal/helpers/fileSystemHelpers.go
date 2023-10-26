@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 )
 
 func FileExists(filename string) bool {
@@ -62,4 +63,15 @@ func ReadFileToString(filename string, logger zerolog.Logger) string {
 	}
 	return lines
 	//reader := bufio.NewReader(file)
+}
+
+func GetFileLastModified(filename string, logger zerolog.Logger) (time.Time, error) {
+	fileStat, err := os.Stat(filename)
+	if err != nil {
+		logger.Error().Err(err)
+		return time.Now(), err
+	} else {
+		lastModtime := fileStat.ModTime().UTC()
+		return lastModtime, nil
+	}
 }
