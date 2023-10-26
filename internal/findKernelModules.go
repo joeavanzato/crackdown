@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 )
 
 type KernelModule struct {
@@ -27,7 +26,6 @@ func FindKernelModules(logger zerolog.Logger, detections chan<- Detection, waitG
 		logger.Error().Err(err)
 		return
 	}
-	timestampNow := time.Now()
 	lines := strings.Split(string(stdout), "\n")
 	for _, l := range lines {
 		if strings.HasPrefix(l, "Module") {
@@ -64,31 +62,34 @@ func FindKernelModules(logger zerolog.Logger, detections chan<- Detection, waitG
 				modInfo.Name = strings.TrimSpace(strings.Split(ll, ":")[1])
 			}
 		}
+		modInfo.Modified = "NA"
 		fileStat, err := os.Stat(modInfo.Filename)
 		if err != nil {
 			logger.Error().Err(err)
 		} else {
 			modInfo.Modified = fileStat.ModTime().UTC().String()
 		}
-		dayDiff := int(timestampNow.Sub(fileStat.ModTime().UTC()).Hours() / 24)
-		if dayDiff <= 30 {
-			// Kernel File modified within last 30 days
-			tmp_ := map[string]interface{}{
-				"ModuleName": modInfo.Name,
-				"Filename":   modInfo.Filename,
-				"Author":     modInfo.Author,
-				"Signer":     modInfo.Signer,
-				"Modified":   modInfo.Modified,
-				"DaysAgo":    dayDiff,
+		if modInfo.Modified != "NA" {
+			dayDiff := int(timestampNow.Sub(fileStat.ModTime().UTC()).Hours() / 24)
+			if dayDiff <= 30 {
+				// Kernel File modified within last 30 days
+				tmp_ := map[string]interface{}{
+					"ModuleName": modInfo.Name,
+					"Filename":   modInfo.Filename,
+					"Author":     modInfo.Author,
+					"Signer":     modInfo.Signer,
+					"Modified":   modInfo.Modified,
+					"DaysAgo":    dayDiff,
+				}
+				detection := Detection{
+					Name:      "Kernel Module modified within last 30 days",
+					Severity:  3,
+					Tip:       "Investigate module to determine validity.",
+					Technique: "T1547.006",
+					Metadata:  tmp_,
+				}
+				detections <- detection
 			}
-			detection := Detection{
-				Name:      "Kernel Module modified within last 30 days",
-				Severity:  3,
-				Tip:       "Investigate module to determine validity.",
-				Technique: "T1547.006",
-				Metadata:  tmp_,
-			}
-			detections <- detection
 		}
 	}
 

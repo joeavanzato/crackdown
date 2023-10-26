@@ -25,7 +25,6 @@ func CheckShellConfigs(logger zerolog.Logger, detections chan<- Detection, waitG
 	files = append(files, "/root/.bashrc")
 	files = append(files, "/etc/zsh/zshrc")
 	for _, file := range files {
-		// TODO - Check for IP Address in commandline
 		if helpers.FileExists(file) == false {
 			continue
 		}
@@ -58,18 +57,26 @@ func CheckShellConfigs(logger zerolog.Logger, detections chan<- Detection, waitG
 				break patternMatch
 			}
 		}
-		ipv4Match, _ := regexp.MatchString(ipv4_regex+`|`+ipv6_regex, fileContents)
+		ipv4Match, _ := regexp.MatchString(ipv4Regex+`|`+ipv6Regex, fileContents)
 		if ipv4Match {
 			detection.Name = "IP Address Pattern in Shell Configuration File"
 			detections <- detection
 			continue
 		}
-		domainMatch, _ := regexp.MatchString(domain_regex, fileContents)
+		domainMatch, _ := regexp.MatchString(domainRegex, fileContents)
 		if domainMatch {
 			detection.Name = "Domain Pattern in Shell Configuration File"
 			detections <- detection
 			continue
 		}
-
+		if fileModificationTime != "NA" {
+			dayDiff := int(timestampNow.Sub(fileStat.ModTime().UTC()).Hours() / 24)
+			if dayDiff <= 30 {
+				// File modified within last 30 days
+				detection.Name = "Shell Config modified within last 30 days."
+				detection.Metadata["DaysAgo"] = dayDiff
+				detections <- detection
+			}
+		}
 	}
 }
