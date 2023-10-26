@@ -136,13 +136,14 @@ func main() {
 	//  Channel Initial Allocation necessary?
 	receiveDetections := make(chan internal.Detection)
 	var waitGroup internal.WaitGroupCount
-	waitGroup.Add(6)
+	waitGroup.Add(7)
 	go internal.FindLocalUsers(logger, receiveDetections, &waitGroup)
 	go internal.FindCronJobs(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousCommandlines(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousConnections(logger, receiveDetections, &waitGroup)
 	go internal.FindSSHAuthorizedKeys(logger, receiveDetections, &waitGroup)
 	go internal.FindKernelModules(logger, receiveDetections, &waitGroup)
+	go internal.CheckBashrc(logger, receiveDetections, &waitGroup)
 
 	go closeChannelWhenDone(receiveDetections, &waitGroup)
 	detections, detectionCount := listenDetections(receiveDetections)
