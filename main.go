@@ -93,8 +93,9 @@ func printLogo() {
 	fmt.Println("	github.com/joeavanzato/crackdown")
 }
 
-func listenDetections(c chan internal.Detection) ([]internal.Detection, int) {
+func listenDetections(logger zerolog.Logger, c chan internal.Detection) ([]internal.Detection, int) {
 	detectionCount := 0
+	total := 0
 	detections := make([]internal.Detection, 20)
 detectionListen:
 	for {
@@ -104,6 +105,12 @@ detectionListen:
 		} else {
 			detections = append(detections, detection)
 			detectionCount += 1
+			total += 1
+		}
+		if total%20 == 0 {
+			total = 0
+			curMsg := fmt.Sprintf("Listening for Detections: %v", detectionCount)
+			logger.Info().Msg(curMsg)
 		}
 	}
 	return detections, detectionCount
@@ -147,7 +154,7 @@ func main() {
 	//  Channel Initial Allocation necessary?
 	receiveDetections := make(chan internal.Detection)
 	var waitGroup internal.WaitGroupCount
-	waitGroup.Add(11)
+	waitGroup.Add(12)
 	go internal.FindLocalUsers(logger, receiveDetections, &waitGroup)
 	go internal.FindCronJobs(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousCommandlines(logger, receiveDetections, &waitGroup)
@@ -159,8 +166,9 @@ func main() {
 	go internal.CheckUserStartupScripts(logger, receiveDetections, &waitGroup)
 	go internal.CheckCommonBackdoors(logger, receiveDetections, &waitGroup)
 	go internal.CheckEnvironmentVariables(logger, receiveDetections, &waitGroup)
+	go internal.FindWebShells(logger, receiveDetections, &waitGroup)
 	go closeChannelWhenDone(receiveDetections, &waitGroup)
-	detections, detectionCount := listenDetections(receiveDetections)
+	detections, detectionCount := listenDetections(logger, receiveDetections)
 	logger.Info().Msgf("Detection Count: %d", detectionCount)
 	if arguments["quiet"] == false {
 		for _, i := range detections {
