@@ -133,14 +133,17 @@ func main() {
 	logger := setupLogger()
 	arguments := parseArgs(logger)
 	printLogo()
+	//  Channel Initial Allocation necessary?
 	receiveDetections := make(chan internal.Detection)
 	var waitGroup internal.WaitGroupCount
-	waitGroup.Add(5)
+	waitGroup.Add(6)
 	go internal.FindLocalUsers(logger, receiveDetections, &waitGroup)
 	go internal.FindCronJobs(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousCommandlines(logger, receiveDetections, &waitGroup)
 	go internal.FindSuspiciousConnections(logger, receiveDetections, &waitGroup)
 	go internal.FindSSHAuthorizedKeys(logger, receiveDetections, &waitGroup)
+	go internal.FindKernelModules(logger, receiveDetections, &waitGroup)
+
 	go closeChannelWhenDone(receiveDetections, &waitGroup)
 	detections, detectionCount := listenDetections(receiveDetections)
 	logger.Info().Msgf("Detection Count: %d", detectionCount)
