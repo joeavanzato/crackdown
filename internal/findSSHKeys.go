@@ -3,6 +3,7 @@ package internal
 import (
 	"github.com/javanzato/crackdown/internal/helpers"
 	"github.com/rs/zerolog"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -21,6 +22,16 @@ func FindSSHAuthorizedKeys(logger zerolog.Logger, detections chan<- Detection, w
 	}
 	for _, file := range files {
 		lines := helpers.ReadFileToSlice(file, logger)
+		// File Modification Check
+		fileStat, err := os.Stat(file)
+		fileModificationTime := "NA"
+		if err != nil {
+			logger.Error().Err(err)
+		} else {
+			fileModificationTime = fileStat.ModTime().UTC().String()
+		}
+
+		// Authorized Key  Parsing
 		for _, l := range lines {
 			keySplit := strings.Split(strings.TrimSpace(l), " ")
 			if keySplit[0] == "" {
@@ -42,9 +53,10 @@ func FindSSHAuthorizedKeys(logger zerolog.Logger, detections chan<- Detection, w
 			}
 			if keyTypeExists == true {
 				tmp_ := map[string]interface{}{
-					"KeyType": strings.TrimSpace(keyType),
-					"KeyName": strings.TrimSpace(keyName),
-					"File":    strings.TrimSpace(file),
+					"KeyType":      strings.TrimSpace(keyType),
+					"KeyName":      strings.TrimSpace(keyName),
+					"File":         strings.TrimSpace(file),
+					"LastModified": fileModificationTime,
 				}
 				detection := Detection{
 					Name:      "SSH Key Review",
@@ -56,6 +68,7 @@ func FindSSHAuthorizedKeys(logger zerolog.Logger, detections chan<- Detection, w
 				detections <- detection
 			}
 		}
+
 	}
 
 }
