@@ -12,6 +12,8 @@ import (
 var serviceFilePaths = make([]string, 10)
 
 func CheckStartupServices(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
+	// https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html
+	// ^ Good description of linux service confs
 	defer waitGroup.Done()
 	logger.Info().Msg("Finding System Services...")
 	err := getServiceFiles(logger)
