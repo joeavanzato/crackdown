@@ -12,6 +12,7 @@ package main
 // TODO - Find better way to abstract generic content checking for suspicious-ness - to much re-use of same logic
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -147,6 +148,37 @@ func writeJSONOut(logger zerolog.Logger, detections []internal.Detection, detect
 	}
 }
 
+func writeCSVOut(logger zerolog.Logger, detections []internal.Detection, detectionCount int) {
+	detections = detections[len(detections)-detectionCount:]
+	f, err := os.Create("detections.csv")
+	if err != nil {
+		panic(err)
+	}
+	headers := []string{
+		"Name",
+		"Severity",
+		"Tip",
+		"Technique",
+		"Metadata",
+	}
+	w := csv.NewWriter(f)
+	err = w.Write(headers)
+	if err != nil {
+		logger.Error().Err(err)
+		return
+	}
+	for _, v := range detections {
+		strSlice := []string{
+			v.Name,
+			severityMap[v.Severity],
+			v.Tip,
+			v.Technique,
+			v.MetaToPairs(),
+		}
+		w.Write(strSlice)
+	}
+}
+
 func main() {
 	logger := setupLogger()
 	arguments := parseArgs(logger)
@@ -183,5 +215,6 @@ func main() {
 		}
 	}
 	writeJSONOut(logger, detections, detectionCount)
+	writeCSVOut(logger, detections, detectionCount)
 
 }

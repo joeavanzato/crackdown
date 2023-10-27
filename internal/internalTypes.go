@@ -27,6 +27,18 @@ func (d Detection) MarshalZerologObject(e *zerolog.Event) {
 		Fields(d.Metadata)
 }
 
+func (d Detection) MetaToPairs() string {
+	if len(d.Metadata) != 0 {
+		baseString := ""
+		for k, v := range d.Metadata {
+			baseString += fmt.Sprintf("%s: %v | ", k, v)
+		}
+		return baseString
+	} else {
+		return ""
+	}
+}
+
 func (d Detection) String() string {
 	// Format the string of a detection to properly iterate over the Metadata when rendering
 	// TODO - Ths second loop after sort for some reason is introducing empty keys to the array - not sure why.
