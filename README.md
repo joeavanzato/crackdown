@@ -26,14 +26,23 @@ Use the '-quiet' flag to suppress detections at the command-line - all detection
 <p align="center">
 <img src="assets/usage1.png">
 </p>
+StdOut Output Example
 <p align="center">
 <img src="assets/usage2.png">
+</p>
+CSV Output Example
+<p align="center">
+<img src="assets/usage_csv.png">
+</p>
+JSON Output Example
+<p align="center">
+<img src="assets/usage_json.png">
 </p>
 
 #### What is inspected?
 
 * **Running Processes** [T1059]
-  * Suspicious Terms, Abnormal exe locations
+  * Suspicious Keywords, IP/Domain in Commandline, Running process with non-existent executable
 * **Active TCP Connections** [T1071]
   * Suspicious Ports, Unusual processes with connections
 * **Cron Jobs** [T1053.003]
@@ -43,7 +52,7 @@ Use the '-quiet' flag to suppress detections at the command-line - all detection
 * **SSH Authorized Keys** [T1098.004]
   * Recent Modifications, General Review
 * **Recently Modified Kernel Modules** [T1547.006]
-* **Modified .bashrc/.zshrc Files** [T1546.004]
+* **Modified Shell Configuration Files** [T1546.004]
 * **Created/Modified Service Files/Service Confs** [T1543.002]
   * /etc/systemd/system|user
   * /run/systemd/system|user
@@ -69,7 +78,6 @@ Use the '-quiet' flag to suppress detections at the command-line - all detection
   * /etc/doas.conf
   * /home/*/. Scripts|Confs
   * /root/.*
-  * 
 
 #### MITRE Techniques Evaluated
 * T1547.006 - Boot or Logon Autostart Execution: Kernel Modules and Extensions
