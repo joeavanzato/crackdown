@@ -23,6 +23,13 @@ sudo crackdown -quiet
 ```
 Use the '-quiet' flag to suppress detections at the command-line - all detections are output to CSV/JSON output in the current working directory.
 
+<p align="center">
+<img src="assets/usage1.png">
+</p>
+<p align="center">
+<img src="assets/usage2.png">
+</p>
+
 #### What is inspected?
 
 * **Running Processes** [T1059]
