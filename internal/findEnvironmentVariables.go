@@ -12,8 +12,12 @@ func CheckEnvironmentVariables(logger zerolog.Logger, detections chan<- Detectio
 	envs := os.Environ()
 	for _, v := range envs {
 		envSplit := strings.SplitN(v, "=", 2)
-		envKey := envSplit[0]
-		envValue := envSplit[1]
+		envKey := "NA"
+		envValue := v
+		if len(envSplit) == 2 {
+			envKey = envSplit[0]
+			envValue = envSplit[1]
+		}
 		tmp_ := map[string]interface{}{
 			"EnvKey":   envKey,
 			"EnvValue": envValue,
