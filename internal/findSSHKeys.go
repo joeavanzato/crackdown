@@ -11,6 +11,7 @@ import (
 func FindSSHAuthorizedKeys(logger zerolog.Logger, detections chan<- Detection, waitGroup *WaitGroupCount) {
 	defer waitGroup.Done()
 	// TODO - Add additional possible properties to detection metadata
+	// https://www.ibm.com/docs/en/zos/2.5.0?topic=daemon-format-authorized-keys-file
 	logger.Info().Msg("Finding Authorized SSH Keys...")
 	files, err := filepath.Glob("/home/*/.ssh/authorized_keys")
 	files = append(files, "/root/.ssh/authorized_keys")
