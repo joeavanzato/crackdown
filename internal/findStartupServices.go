@@ -86,7 +86,7 @@ func CheckStartupServices(logger zerolog.Logger, detections chan<- Detection, wa
 }
 
 func getServiceFiles(logger zerolog.Logger) error {
-	serviceDirs := []string{"/etc/systemd/system", "/run/systemd/system", "/lib/systemd/system"}
+	serviceDirs := []string{"/etc/systemd/system", "/etc/systemd/user", "/run/systemd/system", "/run/systemd/user", "/lib/systemd/system", "/lib/systemd/user"}
 	for _, path := range serviceDirs {
 		filepath.WalkDir(path, walk)
 	}
