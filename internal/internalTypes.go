@@ -31,7 +31,7 @@ func (d Detection) MetaToPairs() string {
 	if len(d.Metadata) != 0 {
 		baseString := ""
 		for k, v := range d.Metadata {
-			baseString += fmt.Sprintf("%s: %v | ", k, v)
+			baseString += fmt.Sprintf("%s: %v ||| ", k, v)
 		}
 		return baseString
 	} else {
@@ -135,4 +135,15 @@ func (wg *WaitGroupCount) Done() {
 
 func (wg *WaitGroupCount) GetCount() int {
 	return int(atomic.LoadInt64(&wg.count))
+}
+
+var filesScannedGlobal = make([]string, 10)
+
+func CheckFileIsScanned(filename string) bool {
+	if helpers.SliceContains(filesScannedGlobal, filename) {
+		return true
+	} else {
+		filesScannedGlobal = append(filesScannedGlobal, filename)
+		return false
+	}
 }
