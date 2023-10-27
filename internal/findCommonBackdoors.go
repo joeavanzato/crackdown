@@ -83,6 +83,12 @@ func CheckCommonBackdoors(logger zerolog.Logger, detections chan<- Detection, wa
 }
 
 func getBackdoorFiles(logger zerolog.Logger) {
+	backDoorFiles := []string{
+		"/etc/at.allow",
+		"/etc/at.deny",
+		"/etc/doas.conf",
+		"/etc/yum.conf",
+	}
 	backdoorDirs := []string{
 		"/etc/update-motd.d",
 		"/var/run/motd",
@@ -92,6 +98,7 @@ func getBackdoorFiles(logger zerolog.Logger) {
 		"/etc/rc.local",
 		"/etc/apt/apt.conf.d",
 		"/usr/share/unattended-upgrades",
+		"/etc/yum.repos.d",
 	}
 	f1, err := filepath.Glob("/home/*/.gitconfig")
 	if err != nil {
@@ -102,9 +109,7 @@ func getBackdoorFiles(logger zerolog.Logger) {
 	for _, path := range backdoorDirs {
 		filepath.WalkDir(path, walkf)
 	}
-	commonBackdoorFiles = append(commonBackdoorFiles, "/etc/at.allow")
-	commonBackdoorFiles = append(commonBackdoorFiles, "/etc/at.deny")
-	commonBackdoorFiles = append(commonBackdoorFiles, "/etc/doas.conf")
+	commonBackdoorFiles = append(commonBackdoorFiles, backDoorFiles...)
 }
 
 func walkf(s string, d fs.DirEntry, err error) error {
