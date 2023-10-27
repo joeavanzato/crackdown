@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -43,7 +42,24 @@ func CheckCommonBackdoors(logger zerolog.Logger, detections chan<- Detection, wa
 		result := false
 	lineCheck:
 		for _, line := range fileSlice {
-			result = checkLineBackdoor(logger, detection, detections, line)
+			detection.Metadata["Line"] = line
+			detection.Name = "Webshell Pattern in Script File"
+			result = checkWebshellContent(detection, detections, line)
+			if result {
+				break lineCheck
+			}
+			detection.Name = "Suspicious Pattern in Script File"
+			result = checkSuspiciousContent(detection, detections, line)
+			if result {
+				break lineCheck
+			}
+			detection.Name = "IP Address Pattern in Script File"
+			result = checkIPContent(detection, detections, line)
+			if result {
+				break lineCheck
+			}
+			detection.Name = "Domain Pattern in Script File"
+			result = checkDomainContent(detection, detections, line)
 			if result {
 				break lineCheck
 			}
@@ -63,31 +79,6 @@ func CheckCommonBackdoors(logger zerolog.Logger, detections chan<- Detection, wa
 	}
 }
 
-func checkLineBackdoor(logger zerolog.Logger, detection Detection, detections chan<- Detection, lineContent string) bool {
-	detection.Metadata["Line"] = lineContent
-	for _, pattern := range suspiciousPatterns {
-		if helpers.SearchStringContains(lineContent, pattern) {
-			detection.Name = "Suspicious Pattern in Script"
-			detection.Metadata["Pattern"] = pattern
-			detections <- detection
-			return true
-		}
-	}
-	ipv4Match, _ := regexp.MatchString(ipv4Regex+`|`+ipv6Regex, lineContent)
-	if ipv4Match {
-		detection.Name = "IP Address Pattern in Script"
-		detections <- detection
-		return true
-	}
-	domainMatch, _ := regexp.MatchString(domainRegex, lineContent)
-	if domainMatch {
-		detection.Name = "Domain Pattern in Script"
-		detections <- detection
-		return true
-	}
-	return false
-}
-
 func getBackdoorFiles(logger zerolog.Logger) {
 	backdoorDirs := []string{
 		"/etc/update-motd.d",
@@ -105,10 +96,12 @@ func getBackdoorFiles(logger zerolog.Logger) {
 	} else {
 		backdoorDirs = append(backdoorDirs, f1...)
 	}
-
 	for _, path := range backdoorDirs {
 		filepath.WalkDir(path, walkf)
 	}
+	commonBackdoorFiles = append(commonBackdoorFiles, "/etc/at.allow")
+	commonBackdoorFiles = append(commonBackdoorFiles, "/etc/at.deny")
+	commonBackdoorFiles = append(commonBackdoorFiles, "/etc/doas.conf")
 }
 
 func walkf(s string, d fs.DirEntry, err error) error {
