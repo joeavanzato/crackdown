@@ -20,6 +20,11 @@ func CheckStartupServices(logger zerolog.Logger, detections chan<- Detection, wa
 		return
 	}
 	for _, file := range serviceFilePaths {
+
+		if CheckFileIsScanned(file) {
+			continue
+		}
+
 		fileStat, err := os.Stat(file)
 		fileModificationTime := "NA"
 		if err != nil {

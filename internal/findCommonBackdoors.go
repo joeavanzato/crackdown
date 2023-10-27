@@ -15,11 +15,14 @@ func CheckCommonBackdoors(logger zerolog.Logger, detections chan<- Detection, wa
 	defer waitGroup.Done()
 	logger.Info().Msg("Checking Common Backdoor Locations...")
 	getBackdoorFiles(logger)
-	for _, v := range commonBackdoorFiles {
-		if v == "" {
+	for _, file := range commonBackdoorFiles {
+		if file == "" {
 			continue
 		}
-		fileStat, err := os.Stat(v)
+		if CheckFileIsScanned(file) {
+			continue
+		}
+		fileStat, err := os.Stat(file)
 		fileModificationTime := "NA"
 		if err != nil {
 			logger.Error().Err(err)
@@ -28,7 +31,7 @@ func CheckCommonBackdoors(logger zerolog.Logger, detections chan<- Detection, wa
 		}
 
 		tmp_ := map[string]interface{}{
-			"File":         strings.TrimSpace(v),
+			"File":         strings.TrimSpace(file),
 			"LastModified": fileModificationTime,
 		}
 		detection := Detection{
@@ -38,7 +41,7 @@ func CheckCommonBackdoors(logger zerolog.Logger, detections chan<- Detection, wa
 			Technique: "T1543.002",
 			Metadata:  tmp_,
 		}
-		fileSlice := helpers.ReadFileToSlice(v, logger)
+		fileSlice := helpers.ReadFileToSlice(file, logger)
 		result := false
 	lineCheck:
 		for _, line := range fileSlice {

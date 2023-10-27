@@ -23,6 +23,9 @@ func CheckUserStartupScripts(logger zerolog.Logger, detections chan<- Detection,
 	}
 	files = append(files, rootFiles...)
 	for _, file := range files {
+		if CheckFileIsScanned(file) {
+			continue
+		}
 		if helpers.FileExists(file) == false {
 			continue
 		}
