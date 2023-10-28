@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/javanzato/crackdown/internal/helpers"
 	"github.com/rs/zerolog"
@@ -27,11 +28,23 @@ func (d Detection) MarshalZerologObject(e *zerolog.Event) {
 		Fields(d.Metadata)
 }
 
-func (d Detection) MetaToPairs() string {
+func (d Detection) MetaToJSON() string {
+	if len(d.Metadata) != 0 {
+		content, err := json.MarshalIndent(d.Metadata, "", "")
+		if err != nil {
+			return "{}"
+		}
+		return string(content)
+	} else {
+		return "{}"
+	}
+}
+
+func (d Detection) MetaToPairs(separator string) string {
 	if len(d.Metadata) != 0 {
 		baseString := ""
 		for k, v := range d.Metadata {
-			baseString += fmt.Sprintf("%s: %v ||| ", k, v)
+			baseString += fmt.Sprintf("%s: %v %v ", k, v, separator)
 		}
 		return baseString
 	} else {
