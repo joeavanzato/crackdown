@@ -36,31 +36,6 @@ var severityMap = map[int]string{
 
 type anyMap map[string]interface{}
 
-/*func setupLogger() *logrus.Logger {
-
-	logFileName := logFile
-	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
-	if err != nil {
-		_, err := fmt.Fprintf(os.Stderr, "Couldn't Initialize Log File: %s", err)
-		if err != nil {
-			panic(nil)
-		}
-		panic(err)
-	}
-	mw := io.MultiWriter(os.Stdout, logFile)
-	logger := &logrus.Logger{
-		Out:   mw,
-		Level: logrus.DebugLevel,
-		Formatter: &prefixed.TextFormatter{
-			TimestampFormat: "2006-01-02 15:04:05",
-			FullTimestamp:   true,
-			ForceFormatting: true,
-		},
-	}
-
-	return logger
-}*/
-
 func setupLogger() zerolog.Logger {
 	logFileName := logFile
 	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -110,7 +85,7 @@ detectionListen:
 		}
 		if total%20 == 0 {
 			total = 0
-			curMsg := fmt.Sprintf("Listening for Detections: %v", detectionCount)
+			curMsg := fmt.Sprintf("Waiting for Detections: %v", detectionCount)
 			logger.Info().Msg(curMsg)
 		}
 	}
@@ -136,7 +111,7 @@ func writeJSONOut(logger zerolog.Logger, detections []internal.Detection, detect
 	detections = detections[len(detections)-detectionCount:]
 	content, err := json.MarshalIndent(detections, "", "\t")
 	if err != nil {
-		logger.Error().Err(err)
+		logger.Error().Msg(err.Error())
 	}
 	f, err := os.Create("detections.json")
 	if err != nil {
@@ -144,7 +119,7 @@ func writeJSONOut(logger zerolog.Logger, detections []internal.Detection, detect
 	}
 	_, err = f.Write(content)
 	if err != nil {
-		logger.Error().Err(err)
+		logger.Error().Msg(err.Error())
 	}
 }
 
@@ -164,18 +139,25 @@ func writeCSVOut(logger zerolog.Logger, detections []internal.Detection, detecti
 	w := csv.NewWriter(f)
 	err = w.Write(headers)
 	if err != nil {
-		logger.Error().Err(err)
+		logger.Error().Msg(err.Error())
 		return
 	}
-	for _, v := range detections {
+	for i := 0; i < detectionCount; i++ {
+		v := detections[i]
 		strSlice := []string{
 			v.Name,
 			severityMap[v.Severity],
 			v.Tip,
 			v.Technique,
-			v.MetaToPairs(),
+			v.MetaToJSON(),
+			//v.MetaToPairs("|||"),
 		}
-		w.Write(strSlice)
+		//fmt.Println(i)
+		//fmt.Println(strSlice)
+		err := w.Write(strSlice)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
@@ -216,5 +198,4 @@ func main() {
 	}
 	writeJSONOut(logger, detections, detectionCount)
 	writeCSVOut(logger, detections, detectionCount)
-
 }
