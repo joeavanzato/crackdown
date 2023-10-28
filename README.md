@@ -1,11 +1,16 @@
-<h1 align="center">
-crackdown
-</h1>
+```
+                        __       __                 
+  ______________ ______/ /______/ /___ _      ______
+ / ___/ ___/ __ '/ ___/ //_/ __  / __ \ | /| / / __ \
+/ /__/ /  / /_/ / /__/ ,< / /_/ / /_/ / |/ |/ / / / /
+\___/_/   \__,_/\___/_/|_|\__,_/\____/|__/|__/_/ /_/ 
+```
+
 <p align="center">
 <img src="assets/cd3.png">
 </p>
 <h2 align="center">
-Linux Persistence Hunter
+crackdown - Linux Persistence Hunter
 </h2>
 
 #### What is it?
@@ -22,6 +27,8 @@ sudo crackdown
 sudo crackdown -quiet
 ```
 Use the '-quiet' flag to suppress detections at the command-line - all detections are output to CSV/JSON output in the current working directory.
+
+CSV output will store detection metadata in a JSON string within the Metadata column - other columns are normal strings.
 
 <p align="center">
 <img src="assets/usage1.png">
@@ -97,4 +104,14 @@ TODO:
 * NOPSSWD Sudoers
 * Recently Modified Binaries
 * Privileged User Highlight
+
+
+#### General References
+* https://www.ibm.com/docs/en/zos/2.5.0?topic=daemon-format-authorized-keys-file
+* https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Linux%20-%20Persistence.md
+* https://www.linode.com/docs/guides/linux-red-team-persistence-techniques/
+* https://cyberblueteam.medium.com/blue-team-tips-linux-os-finding-evil-running-process-3f12b17c3b8e
+* https://pberba.github.io/assets/posts/common/20220201-linux-persistence.png
+* https://github.com/xl7dev/WebShell
+* https://medium.com/kernel-space/linux-fundamentals-a-to-z-of-a-sudoers-file-a5da99a30e7f
 * 
